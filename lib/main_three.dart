@@ -21,7 +21,6 @@ class _MyAppState extends State<MyApp> {
   List<Widget> _ports = [];
   final List<Widget> _serialData = [];
 
-  StreamSubscription<Uint8List>? _subscription;
   Transaction<Uint8List>? _transaction;
   UsbDevice? _device;
   final List<String> _hexCodeSent = [];
@@ -32,11 +31,6 @@ class _MyAppState extends State<MyApp> {
 
   Future<bool> _connectTo(UsbDevice? device) async {
     _serialData.clear();
-
-    if (_subscription != null) {
-      _subscription!.cancel();
-      _subscription = null;
-    }
 
     if (_transaction != null) {
       _transaction!.dispose();
@@ -77,21 +71,20 @@ class _MyAppState extends State<MyApp> {
     _transaction = Transaction.terminated(
         _port?.inputStream as Stream<Uint8List>, Uint8List.fromList([0xf4]));
 
-    _subscription = _transaction!.stream.listen((Uint8List line) {
-      final List<String> hexLine = [];
-      for (var num in line) {
-        hexLine.add(num.toRadixString(16));
-      }
-      print('aqui: $hexLine');
-      setState(() {
-        _serialData.add(Text('${hexLine.toString()}\n'));
-      });
-    });
 
     setState(() {
       _status = "Connected";
     });
     return true;
+  }
+
+  Future<void> _sendCommand(List<int>? dataToSend) async {
+    print('entrei no send command');
+    await _port!.write(Uint8List.fromList(dataToSend!));
+
+    var response = await _transaction?.transaction(_port!, Uint8List.fromList([65,66,13,10]), Duration(seconds: 1) );
+    print("aqui a resposta: $response");
+
   }
 
   void _getPorts() async {
@@ -164,8 +157,7 @@ class _MyAppState extends State<MyApp> {
                                 child: const Text('Initiate Treadmill'),
                                 onPressed: () async {
                                   final List<int> startTreadmill = [0xf6, 0xa0, 0x80, 0x10, 0x78, 0xf4];
-                                  await _port?.write(Uint8List.fromList(startTreadmill));
-                                  _dealWithHexSent(startTreadmill);
+                                  await _sendCommand(startTreadmill);
                                 },
                               ),
                             ),
@@ -176,8 +168,7 @@ class _MyAppState extends State<MyApp> {
                                 child: const Text('Verify Error'),
                                 onPressed: () async {
                                   final List<int> startTreadmill = [0xf6, 0x1a, 0x8b, 0x3e, 0xf4];
-                                  await _port?.write(Uint8List.fromList(startTreadmill));
-                                  _dealWithHexSent(startTreadmill);
+                                  await _sendCommand(startTreadmill);
                                 },
                               ),
                             ),
@@ -205,8 +196,7 @@ class _MyAppState extends State<MyApp> {
                                 child: const Text('Read Speed'),
                                 onPressed: () async {
                                   final List<int> readSpeed = [0xf6, 0x10, 0x8c, 0xbe, 0xf4];
-                                  await _port?.write(Uint8List.fromList(readSpeed));
-                                  _dealWithHexSent(readSpeed);
+                                  await _sendCommand(readSpeed);
                                 },
                               ),
                             ),
@@ -216,8 +206,7 @@ class _MyAppState extends State<MyApp> {
                                 child: const Text('Illegal command'),
                                 onPressed: () async {
                                   final List<int> readSpeed = [0xf6, 0x00, 0x00, 0x00, 0xf4];
-                                  await _port?.write(Uint8List.fromList(readSpeed));
-                                  _dealWithHexSent(readSpeed);
+                                  await _sendCommand(readSpeed);
                                 },
                               ),
                             ),
@@ -227,8 +216,7 @@ class _MyAppState extends State<MyApp> {
                                 child: const Text('Stop command 0xff'),
                                 onPressed: () async {
                                   final List<int> startTreadmill = [0xf6, 0xa0, 0xff, 0xf7, 0x00, 0x39, 0xf4];
-                                  await _port?.write(Uint8List.fromList(startTreadmill));
-                                  _dealWithHexSent(startTreadmill);
+                                  await _sendCommand(startTreadmill);
                                 },
                               ),
                             ),
@@ -238,8 +226,7 @@ class _MyAppState extends State<MyApp> {
                                 child: const Text('Stop command 0xc0'),
                                 onPressed: () async {
                                   final List<int> startTreadmill = [0xf6, 0xa0, 0xc0, 0xe0, 0x79, 0xf4];
-                                  await _port?.write(Uint8List.fromList(startTreadmill));
-                                  _dealWithHexSent(startTreadmill);
+                                  await _sendCommand(startTreadmill);
                                 },
                               ),
                             ),
@@ -249,8 +236,7 @@ class _MyAppState extends State<MyApp> {
                                 child: const Text('Stop command 0x00'),
                                 onPressed: () async {
                                   final List<int> startTreadmill = [0xf6, 0xa0, 0x00, 0xb0, 0x79, 0xf4];
-                                  await _port?.write(Uint8List.fromList(startTreadmill));
-                                  _dealWithHexSent(startTreadmill);
+                                  await _sendCommand(startTreadmill);
                                 },
                               ),
                             ),
@@ -260,8 +246,7 @@ class _MyAppState extends State<MyApp> {
                                 child: const Text('zerado'),
                                 onPressed: () async {
                                   final List<int> startTreadmill = [0xf6, 0x90, 0x00, 0x01, 0x2d, 0xb0, 0xf4];
-                                  await _port?.write(Uint8List.fromList(startTreadmill));
-                                  _dealWithHexSent(startTreadmill);
+                                  await _sendCommand(startTreadmill);
                                 },
                               ),
                             ),
@@ -285,15 +270,10 @@ class _MyAppState extends State<MyApp> {
                               if (_port == null) {
                                 return;
                               }
-
                               int data = int.parse(_textController.text);
                               List<int>? dataToSend =
                               writeDataToInverter(value: data, type: commandType);
-
-
-                              await _port!.write(Uint8List.fromList(dataToSend));
-                              _textController.text = "";
-                              _dealWithHexSent(Uint8List.fromList(dataToSend));
+                              await _sendCommand(dataToSend);
                             },
                             child: const Text("Send"),
                           ),
@@ -305,14 +285,6 @@ class _MyAppState extends State<MyApp> {
                     ]),
               )),
         ));
-  }
-
-  void _dealWithHexSent(final List<int> command) {
-    _hexCodeSent.clear();
-    for (var num in command) {
-      _hexCodeSent.add(num.toRadixString(16));
-    }
-    setState(() {});
   }
 }
 
