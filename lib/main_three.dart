@@ -79,14 +79,13 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _sendCommand(List<int>? dataToSend) async {
     print('entrei no send command');
-    await _port!.write(Uint8List.fromList(dataToSend!));
-
-    var response = await _transaction?.transaction(_port!, Uint8List.fromList([65,66,13,10]), Duration(seconds: 1) );
+    var response = await _transaction?.transaction(_port!, Uint8List
+        .fromList(dataToSend!), const Duration(seconds: 1));
     print("aqui a resposta: $response");
+    _dealWithHexSent(dataToSend!);
     setState(() {
       _serialData.add(Text('${response.toString()}\n'));
     });
-
   }
 
   void _getPorts() async {
@@ -171,8 +170,9 @@ class _MyAppState extends State<MyApp> {
                                 [0xf6, 0xa0, 0xc0, 0xe0, 0x79, 0xf4]),
                             _commandButton('Stop command 0x00',
                                 [0xf6, 0xa0, 0x00, 0xb0, 0x79, 0xf4]),
-                            _commandButton('zerado',
-                                [0xf6, 0x90, 0x00, 0x01, 0x2d, 0xb0, 0xf4]),
+                            _commandButton('Encavalado',
+                                [0xf6, 0x98, 0x00, 0x85, 0x8c, 0x31, 0xf4,
+                                  0xf6, 0x90, 0x09, 0x60, 0x95, 0x77, 0xf4,]),
                           ],
                         ),
                       ),
@@ -230,5 +230,13 @@ class _MyAppState extends State<MyApp> {
         onPressed: () async => commandType = type
       ),
     );
+  }
+
+  void _dealWithHexSent(final List<int> command) {
+    _hexCodeSent.clear();
+    for (var num in command) {
+      _hexCodeSent.add(num.toRadixString(16));
+    }
+    setState(() {});
   }
 }

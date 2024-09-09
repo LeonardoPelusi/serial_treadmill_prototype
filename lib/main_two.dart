@@ -257,11 +257,16 @@ class _MyAppState extends State<MyApp> {
                             Container(
                               margin: const EdgeInsets.symmetric(vertical: 5),
                               child: ElevatedButton(
-                                child: const Text('zerado'),
+                                child: const Text('Mockado'),
                                 onPressed: () async {
-                                  final List<int> startTreadmill = [0xf6, 0x90, 0x00, 0x01, 0x2d, 0xb0, 0xf4];
-                                  await _port?.write(Uint8List.fromList(startTreadmill));
-                                  _dealWithHexSent(startTreadmill);
+                                  List<int> commandOne = [0xf6, 0x90, 0x09, 0x60, 0x95, 0x77, 0xf4];
+                                  List<int> commandTwo = [0xf6, 0x98, 0x00, 0x85, 0x8c, 0x31, 0xf4];
+
+                                  _port?.write(Uint8List.fromList(commandTwo));
+                                  _dealWithHexSent(commandTwo);
+                                  _port?.write(Uint8List.fromList(commandOne));
+                                  _dealWithHexSent(commandOne);
+
                                 },
                               ),
                             ),
