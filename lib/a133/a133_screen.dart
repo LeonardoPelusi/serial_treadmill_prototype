@@ -6,7 +6,7 @@ import 'package:usb_serial_for_android/usb_device.dart';
 import 'package:usb_serial_for_android/usb_event.dart';
 import 'package:usb_serial_for_android/usb_port.dart';
 import 'package:usb_serial_for_android/usb_serial_for_android.dart';
-import 'a133_enums.dart';
+import 'a133_command_enums.dart';
 import 'a133_protocol.dart';
 
 class A133Screen extends StatefulWidget {
@@ -21,14 +21,11 @@ class _A133ScreenState extends State<A133Screen> {
   String _status = "Idle";
   List<Widget> _ports = [];
   final List<Widget> _serialData = [];
-
   Transaction<Uint8List>? _transaction;
   UsbDevice? _device;
+
   final List<String> _hexCodeSent = [];
   late TextEditingController _textController;
-  A133WriteCommandType commandType = A133WriteCommandType.speed;
-
-  //final TextEditingController _textController = TextEditingController();
 
   Future<bool> _connectTo(UsbDevice? device) async {
     _serialData.clear();
@@ -62,12 +59,12 @@ class _A133ScreenState extends State<A133Screen> {
     await _port!.setDTR(true);
     await _port!.setRTS(true);
     await _port!.setPortParameters(
-        9600, UsbPort.DATABITS_8, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
+        38400, UsbPort.DATABITS_8, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
 
     await _port!.connect();
 
     _transaction = Transaction.terminated(
-        _port?.inputStream as Stream<Uint8List>, Uint8List.fromList([0xf4]));
+        _port?.inputStream as Stream<Uint8List>, Uint8List.fromList([0xfe]));
 
 
     setState(() {
@@ -77,10 +74,8 @@ class _A133ScreenState extends State<A133Screen> {
   }
 
   Future<void> _sendCommand(List<int>? dataToSend) async {
-    print('entrei no send command');
     var response = await _transaction?.transaction(_port!, Uint8List
         .fromList(dataToSend!), const Duration(seconds: 1));
-    print("aqui a resposta: $response");
     _dealWithHexSent(dataToSend!);
     setState(() {
       _serialData.add(Text('${response.toString()}\n'));
@@ -133,83 +128,123 @@ class _A133ScreenState extends State<A133Screen> {
     return MaterialApp(
         home: Scaffold(
           appBar: AppBar(
-            title: const Text('USB Serial Plugin example app'),
+            title: const Text('USB-Serial Communication Prototype'),
           ),
           body: Center(
-              child: SingleChildScrollView(
-                child: Column(
-                    children: <Widget>[
-                      Text(
-                          _ports.isNotEmpty
-                              ? "Available Serial Ports"
-                              : "No serial devices available",
-                          style: Theme.of(context).textTheme.headline6),
-                      ..._ports,
-                      Text('Status: $_status\n'),
-                      Text('info: ${_port.toString()}\n'),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _chooseCommandType('Choose Speed Command',
-                                A133WriteCommandType.speed),
-                            _chooseCommandType('Choose Inclination Command',
-                                A133WriteCommandType.inclination),
-                            _commandButton('Initiate Treadmill',
-                                [0xf6, 0xa0, 0x80, 0x10, 0x78, 0xf4]),
-                            _commandButton('Verify Error',
-                                [0xf6, 0x1a, 0x8b, 0x3e, 0xf4]),
-                            _commandButton('Read Speed',
-                                [0xf6, 0x10, 0x8c, 0xbe, 0xf4]),
-                            _commandButton('Illegal command',
-                                [0xf6, 0x00, 0x00, 0x00, 0xf4]),
-                            _commandButton('Stop command 0xff',
-                                [0xf6, 0xa0, 0xff, 0xf7, 0x00, 0x39, 0xf4]),
-                            _commandButton('Stop command 0xc0',
-                                [0xf6, 0xa0, 0xc0, 0xe0, 0x79, 0xf4]),
-                            _commandButton('Stop command 0x00',
-                                [0xf6, 0xa0, 0x00, 0xb0, 0x79, 0xf4]),
-                            _commandButton('Encavalado',
-                                [0xf6, 0x98, 0x00, 0x85, 0x8c, 0x31, 0xf4,
-                                  0xf6, 0x90, 0x09, 0x60, 0x95, 0x77, 0xf4,]),
-                          ],
-                        ),
-                      ),
-                      SizedBox(
-                        width: 300,
-                        child: ListTile(
-                          title: TextField(
-                            controller: _textController,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              labelText: 'Text To Send',
+            child: SingleChildScrollView(
+              child: Column(
+                  children: <Widget>[
+                    Text(
+                        _ports.isNotEmpty
+                            ? "Available Serial Ports"
+                            : "No serial devices available",
+                        style: Theme.of(context).textTheme.headline6),
+                    ..._ports,
+                    const SizedBox(height: 40),
+                    Text(
+                      'Connection Info:',
+                       style: Theme.of(context).textTheme.headline6),
+                    Text('Status: $_status\n'),
+                    Text('Details: ${_port.toString()}\n'),
+                    const SizedBox(height: 40),
+                    Text(
+                        'Quick Commands:',
+                        style: Theme.of(context).textTheme.headline6),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _controlCommandButton(title: 'Start Operation',
+                              commandType: A133CommandTypes.writeControlCommand,
+                              instructionType: A133InstructionTypes.startTreadmill
+                          ),
+                          _controlCommandButton(title: 'Stop Operation',
+                              commandType: A133CommandTypes.writeControlCommand,
+                              instructionType: A133InstructionTypes.stopTreadmill
+                          ),
+                          _controlCommandButton(title: 'Emergency Stop',
+                              commandType: A133CommandTypes.writeControlCommand,
+                              instructionType: A133InstructionTypes.emergencyStop
+                          ),
+                          _oneParamButton(title: 'Read Set Speed',
+                              commandType: A133CommandTypes.readOneParam,
+                              parameterIndex: A133ParameterIndexTypes.setSpeed
+                          ),
+                          _oneParamButton(title: 'Read Actual Speed',
+                              commandType: A133CommandTypes.readOneParam,
+                              parameterIndex: A133ParameterIndexTypes.actualSpeed
+                          ),
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                            child: ElevatedButton(
+                              child: const Text('Read Data Packet'),
+                              onPressed: () async {
+                                await _sendCommand([0xff, 0x41, 0x02, 0x34, 0x88, 0xfe]);
+                              },
                             ),
                           ),
-                          trailing: ElevatedButton(
-                            onPressed: _port == null
-                                ? null
-                                : () async {
-                              if (_port == null) {
-                                return;
-                              }
-                              int data = int.parse(_textController.text);
-                              List<int>? dataToSend =
-                              A133Protocol.formatWriteRequisition(value: data, type: commandType);
-                              await _sendCommand(dataToSend);
-                            },
-                            child: const Text("Send"),
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                            child: ElevatedButton(
+                              child: const Text('Read Normal Data Packet'),
+                              onPressed: () async {
+                                await _sendCommand([0xff, 0x41, 0x01, 0xbd, 0x99, 0xfe]);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    Text(
+                        'Choose speed command in km/h:',
+                        style: Theme.of(context).textTheme.headline6),
+                    SizedBox(
+                      width: 300,
+                      child: ListTile(
+                        title: TextField(
+                          controller: _textController,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'type speed',
                           ),
                         ),
+                        trailing: ElevatedButton(
+                          onPressed: _port == null
+                              ? null
+                              : () async {
+                            if (_port == null) {
+                              return;
+                            }
+                            int data = int.parse(_textController.text);
+                            List<int>? dataToSend =
+                            A133Protocol.formatOneParameterCmd(value: data,
+                                commandType: A133CommandTypes.writeOneParam,
+                                parameterIndex: A133ParameterIndexTypes.setSpeed);
+                            await _sendCommand(dataToSend);
+                          },
+                          child: const Text("Send"),
+                        ),
                       ),
-                      Text('Command sent to treadmill: $_hexCodeSent'),
-                      const Text("Result Data"),
-                      ..._serialData,
-                    ]),
-              )),
+                    ),
+                    Text('Command sent to treadmill: $_hexCodeSent'),
+                    const Text("Result Data"),
+                    ..._serialData,
+                  ]),
+            ),
+          ),
         ));
   }
 
-  Widget _commandButton(String title, List<int> command) {
+  Widget _controlCommandButton({
+    required String title,
+    required A133CommandTypes commandType,
+    required A133InstructionTypes instructionType,
+  }) {
+    List<int> command = A133Protocol.formatControlCmd(
+        commandType: commandType,
+        instructionType: instructionType,
+    );
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
       child: ElevatedButton(
@@ -221,12 +256,24 @@ class _A133ScreenState extends State<A133Screen> {
     );
   }
 
-  Widget _chooseCommandType(String title, A133WriteCommandType type) {
+  Widget _oneParamButton({
+    required String title,
+    required A133CommandTypes commandType,
+    required A133ParameterIndexTypes parameterIndex,
+    num? value,
+    }) {
+    List<int> command = A133Protocol.formatOneParameterCmd(
+        commandType: commandType,
+        parameterIndex: parameterIndex,
+        value: value
+    );
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 5),
+      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
       child: ElevatedButton(
-          child: Text(title),
-          onPressed: () async => commandType = type
+        child: Text(title),
+        onPressed: () async {
+          await _sendCommand(command);
+        },
       ),
     );
   }

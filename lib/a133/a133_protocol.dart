@@ -28,7 +28,7 @@ abstract class A133Protocol {
         parameterIndex.toParameterIndex()]);
     }
     List<int> checkSumSplit = _splitCode(checkSumRaw);
-    List<int> stopFlag = _splitCode([0xfe]);
+    List<int> stopFlag = [0xfe];
 
     List<int> finalData = startFlag + functionCode + paramIndex
         + parameterValueSplit + checkSumSplit + stopFlag;
@@ -45,7 +45,7 @@ abstract class A133Protocol {
     List<int> checkSumRaw = _getCrc([commandType.toFunctionCode(),
       instructionType.toInstructionCode()]);
     List<int> checkSumSplit = _splitCode(checkSumRaw);
-    List<int> stopFlag = _splitCode([0xfe]);
+    List<int> stopFlag = [0xfe];
 
     List<int> finalData = startFlag + functionCode + paramIndex
         + checkSumSplit + stopFlag;

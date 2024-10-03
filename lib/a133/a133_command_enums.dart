@@ -70,20 +70,20 @@ extension InstructionCode on A133InstructionTypes {
 /// Parameter Index
 
 enum A133ParameterIndexTypes {
-  writeDataPacket, readDataPacket,
-  setSpeed, readSpeed,
+  dataPacket, normalDataPacket,
+  setSpeed, actualSpeed,
 }
 
 extension IndexParameter on A133ParameterIndexTypes {
   int toParameterIndex() {
     switch (this) {
-      case A133ParameterIndexTypes.readDataPacket:
+      case A133ParameterIndexTypes.normalDataPacket:
         return 0x01;
-      case A133ParameterIndexTypes.writeDataPacket:
+      case A133ParameterIndexTypes.dataPacket:
         return 0x02;
       case A133ParameterIndexTypes.setSpeed:
         return 0x05;
-      case A133ParameterIndexTypes.readSpeed:
+      case A133ParameterIndexTypes.actualSpeed:
         return 0x06;
     }
   }
