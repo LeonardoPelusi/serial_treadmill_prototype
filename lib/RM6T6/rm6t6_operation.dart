@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:serial_to_usb_treadmill_prototype/treadmill_protocol.dart';
+import 'package:serial_to_usb_treadmill_prototype/RM6T6/treadmill_protocol.dart';
 import 'package:usb_serial_for_android/transaction.dart';
 import 'package:usb_serial_for_android/usb_device.dart';
 import 'package:usb_serial_for_android/usb_event.dart';
