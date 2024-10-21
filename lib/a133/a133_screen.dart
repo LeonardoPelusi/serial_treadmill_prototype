@@ -77,8 +77,19 @@ class _A133ScreenState extends State<A133Screen> {
     var response = await _transaction?.transaction(_port!, Uint8List
         .fromList(dataToSend!), const Duration(seconds: 1));
     _dealWithHexSent(dataToSend!);
+
+    List<String> hexResponse = [];
+    if (response != null) {
+      for (var num in response) {
+        _hexCodeSent.add(num.toRadixString(16));
+      }
+    }
     setState(() {
-      _serialData.add(Text('${response.toString()}\n'));
+      if (response != null) {
+        _serialData.add(Text('$hexResponse\n'));
+      } else {
+        _serialData.add(Text('${response.toString()}\n'));
+      }
     });
   }
 
@@ -174,23 +185,13 @@ class _A133ScreenState extends State<A133Screen> {
                               commandType: A133CommandTypes.readOneParam,
                               parameterIndex: A133ParameterIndexTypes.actualSpeed
                           ),
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                            child: ElevatedButton(
-                              child: const Text('Read Data Packet'),
-                              onPressed: () async {
-                                await _sendCommand([0xff, 0x41, 0x02, 0x34, 0x88, 0xfe]);
-                              },
-                            ),
+                          _oneParamButton(title: 'Read Data Packet',
+                              commandType: A133CommandTypes.readMultipleParams,
+                              parameterIndex: A133ParameterIndexTypes.dataPacket
                           ),
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                            child: ElevatedButton(
-                              child: const Text('Read Normal Data Packet'),
-                              onPressed: () async {
-                                await _sendCommand([0xff, 0x41, 0x01, 0xbd, 0x99, 0xfe]);
-                              },
-                            ),
+                          _oneParamButton(title: 'Read Normal Data Packet',
+                              commandType: A133CommandTypes.readMultipleParams,
+                              parameterIndex: A133ParameterIndexTypes.normalDataPacket
                           ),
                         ],
                       ),

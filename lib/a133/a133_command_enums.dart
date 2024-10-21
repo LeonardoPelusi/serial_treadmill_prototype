@@ -82,9 +82,9 @@ extension IndexParameter on A133ParameterIndexTypes {
       case A133ParameterIndexTypes.dataPacket:
         return 0x02;
       case A133ParameterIndexTypes.setSpeed:
-        return 0x05;
+        return 0x23;
       case A133ParameterIndexTypes.actualSpeed:
-        return 0x06;
+        return 0x24;
     }
   }
 }
