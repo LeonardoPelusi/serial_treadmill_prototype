@@ -26,6 +26,7 @@ class _A133ScreenState extends State<A133Screen> {
 
   final List<String> _hexCodeSent = [];
   late TextEditingController _textController;
+  Timer? _normalPacketTimer;
 
   Future<bool> _connectTo(UsbDevice? device) async {
     _serialData.clear();
@@ -66,22 +67,33 @@ class _A133ScreenState extends State<A133Screen> {
     _transaction = Transaction.terminated(
         _port?.inputStream as Stream<Uint8List>, Uint8List.fromList([0xfe]));
 
-
     setState(() {
       _status = "Connected";
     });
+    await _initNormalPacketTimer();
     return true;
   }
 
-  Future<void> _sendCommand(List<int>? dataToSend) async {
+  Future<void> _initNormalPacketTimer() async {
+    _normalPacketTimer?.cancel();
+    _normalPacketTimer = Timer.periodic(const Duration(milliseconds: 150), (Timer t) async {
+      List<int> normalDataPacket = [0xff, 0x41, 0x01, 0x8f, 0xbe, 0xfe];
+      await _sendCommand(normalDataPacket, isNormalPacket: true);
+    });
+  }
+
+  Future<void> _sendCommand(List<int>? dataToSend, {required bool isNormalPacket}) async {
     var response = await _transaction?.transaction(_port!, Uint8List
         .fromList(dataToSend!), const Duration(seconds: 1));
+
+    if (isNormalPacket) return;
+
     _dealWithHexSent(dataToSend!);
 
     List<String> hexResponse = [];
     if (response != null) {
       for (var num in response) {
-        _hexCodeSent.add(num.toRadixString(16));
+        hexResponse.add(num.toRadixString(16));
       }
     }
     setState(() {
@@ -131,6 +143,8 @@ class _A133ScreenState extends State<A133Screen> {
   void dispose() {
     super.dispose();
     _textController.dispose();
+    _normalPacketTimer?.cancel();
+    _normalPacketTimer = null;
     _connectTo(null);
   }
 
@@ -222,7 +236,7 @@ class _A133ScreenState extends State<A133Screen> {
                             A133Protocol.formatOneParameterCmd(value: data,
                                 commandType: A133CommandTypes.writeOneParam,
                                 parameterIndex: A133ParameterIndexTypes.setSpeed);
-                            await _sendCommand(dataToSend);
+                            await _sendCommand(dataToSend, isNormalPacket: false);
                           },
                           child: const Text("Send"),
                         ),
@@ -251,7 +265,7 @@ class _A133ScreenState extends State<A133Screen> {
       child: ElevatedButton(
         child: Text(title),
         onPressed: () async {
-          await _sendCommand(command);
+          await _sendCommand(command, isNormalPacket: false);
         },
       ),
     );
@@ -273,7 +287,7 @@ class _A133ScreenState extends State<A133Screen> {
       child: ElevatedButton(
         child: Text(title),
         onPressed: () async {
-          await _sendCommand(command);
+          await _sendCommand(command, isNormalPacket: false);
         },
       ),
     );
