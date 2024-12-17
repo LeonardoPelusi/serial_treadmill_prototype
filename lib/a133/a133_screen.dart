@@ -286,7 +286,6 @@ class _A133ScreenState extends State<A133Screen> {
                             MaskedTextInputFormatter(
                                 mask: 'xx xx xx xx xx xx xx xx', separator: ' '),
                           ],
-                          onChanged: (value) => print('value: $value'),
                         ),
                         trailing: ElevatedButton(
                           onPressed: _port == null
